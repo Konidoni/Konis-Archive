@@ -160,6 +160,7 @@ def generate_image(image_prompt: str) -> Image.Image:
     max_retries = 3
     for attempt in range(1, max_retries + 1):
         try:
+            url = urls[attempt - 1]
             print(f"  ⏳ 이미지 생성 중... (시도 {attempt}/{max_retries}, 10~40초 소요)")
             response = requests.get(url, timeout=120)
             response.raise_for_status()
