@@ -148,7 +148,14 @@ def generate_image(image_prompt: str) -> Image.Image:
     )
 
     encoded = quote(safe_prompt)
-    url     = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&seed={abs(hash(safe_prompt)) % 99999}"
+
+    # 시도할 URL 목록 (파라미터 조합을 달리해서 시도)
+    seed = abs(hash(safe_prompt)) % 99999
+    urls = [
+        f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&model=flux&seed={seed}",
+        f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&seed={seed+1}",
+        f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024",
+    ]
 
     max_retries = 3
     for attempt in range(1, max_retries + 1):
