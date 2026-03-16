@@ -140,23 +140,39 @@ def generate_content(korean: str) -> dict:
 def generate_image(image_prompt: str) -> Image.Image:
     print("\n🎨 Step 3: Pollinations.ai로 이미지 생성 중... (무료)")
 
-    safe_prompt = (
-        image_prompt.rstrip(".")
-        + ". No text, no letters, no words, no signs. Cinematic, photorealistic."
+    # 프롬프트가 너무 길면 서버 오류 날 수 있으므로 200자로 제한
+    short_prompt = image_prompt[:200]
+    safe_prompt  = (
+        short_prompt.rstrip(".")
+        + ". No text, no letters, no words. Cinematic, photorealistic."
     )
 
     encoded = quote(safe_prompt)
-    url     = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true"
+    url     = f"https://image.pollinations.ai/prompt/{encoded}?width=1024&height=1024&nologo=true&seed={abs(hash(safe_prompt)) % 99999}"
 
-    print("  ⏳ 이미지 생성 중 (10~30초 소요)...")
-    response = requests.get(url, timeout=120)
-    response.raise_for_status()
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"  ⏳ 이미지 생성 중... (시도 {attempt}/{max_retries}, 10~40초 소요)")
+            response = requests.get(url, timeout=120)
+            response.raise_for_status()
 
-    image = Image.open(BytesIO(response.content)).convert("RGBA")
-    image = image.resize(CARD_SIZE, Image.LANCZOS)
+            image = Image.open(BytesIO(response.content)).convert("RGBA")
+            image = image.resize(CARD_SIZE, Image.LANCZOS)
+            print("  ✅ 이미지 생성 완료!")
+            return image
 
-    print("  ✅ 이미지 생성 완료!")
-    return image
+        except Exception as e:
+            print(f"  ⚠️  시도 {attempt} 실패: {e}")
+            if attempt < max_retries:
+                import time
+                print(f"  🔄 5초 후 재시도...")
+                time.sleep(5)
+            else:
+                # 모든 시도 실패 시 단색 배경으로 대체
+                print("  ⚠️  이미지 생성 실패. 기본 배경으로 대체합니다.")
+                fallback = Image.new("RGBA", CARD_SIZE, (30, 30, 50, 255))
+                return fallback
 
 # ===========================================================================
 # 브랜딩 로고 (Pillow로 직접 그리기)
